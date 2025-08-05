@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我的日常</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="images/coffee.jpg" />
+</head>
+<body data-page="daily">
+  <!-- Navigation bar -->
+  <nav class="navbar">
+    <div class="logo">UMUW空间</div>
+    <ul>
+      <li><a href="index.html">主页</a></li>
+      <li><a href="daily.html" class="active">我的日常</a></li>
+      <li><a href="vlog.html">我的出行vlog</a></li>
+      <li><a href="music.html">做点MUSIC</a></li>
+      <li><a href="ideas.html">想法杂记</a></li>
+      <li id="auth-links"></li>
+    </ul>
+  </nav>
+  <main class="container">
+    <header class="page-header">
+      <h2>我的日常</h2>
+      <p>记录生活中的点点滴滴，分享喜怒哀乐。</p>
+    </header>
+    <!-- Post creation form -->
+    <form class="post-form">
+      <textarea placeholder="今天发生了什么？"></textarea>
+      <input type="file" accept="image/*,video/*" />
+      <button type="submit">发布</button>
+    </form>
+    <!-- Posts container -->
+    <div class="posts"></div>
+  </main>
+  <footer>
+    <p>&copy; 2025 UMUW空间</p>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>

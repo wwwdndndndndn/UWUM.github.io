@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>做点MUSIC</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="images/music_image.png" />
+</head>
+<body data-page="music">
+  <!-- Navigation bar -->
+  <nav class="navbar">
+    <div class="logo">UMUW空间</div>
+    <ul>
+      <li><a href="index.html">主页</a></li>
+      <li><a href="daily.html">我的日常</a></li>
+      <li><a href="vlog.html">我的出行vlog</a></li>
+      <li><a href="music.html" class="active">做点MUSIC</a></li>
+      <li><a href="ideas.html">想法杂记</a></li>
+      <li id="auth-links"></li>
+    </ul>
+  </nav>
+  <main class="container">
+      <header class="page-header">
+        <h2>做点MUSIC</h2>
+        <p>探索声音，分享你的旋律与节奏。</p>
+        <!-- Sample audio demonstration -->
+        <audio controls style="margin-top: 1rem; width: 100%; max-width: 400px;">
+          <source src="audios/music.wav" type="audio/wav" />
+          您的浏览器不支持音频播放。
+        </audio>
+      </header>
+      <!-- Post creation form -->
+      <form class="post-form">
+        <textarea placeholder="分享你的音乐创作感受..."></textarea>
+        <input type="file" accept="audio/*,image/*" />
+        <button type="submit">发布</button>
+      </form>
+      <!-- Posts container -->
+      <div class="posts"></div>
+  </main>
+  <footer>
+      <p>&copy; 2025 UMUW空间</p>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>

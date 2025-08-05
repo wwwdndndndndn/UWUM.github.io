@@ -1,0 +1,270 @@
+/*
+ * Global Stylesheet for Personal Website
+ *
+ * This stylesheet defines a neutral, monochrome colour palette inspired
+ * by minimalistic designs. It uses CSS variables for easy theme
+ * adjustments, a modern sans‑serif font loaded from Google Fonts, and
+ * simple utility classes to build a clean layout. The overall look
+ * echoes Apple’s aesthetic: generous white space, smooth rounded
+ * corners and subtle shadows to emphasise hierarchy without clutter.
+ */
+
+/* Import a slick, highly legible font from Google Fonts.  We use the
+   `Montserrat` family for its modern, slightly geometric forms which
+   remain easy to read at small sizes. */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
+
+:root {
+  /* Colour palette – all neutrals to maintain a pared‑back feel */
+  --color-bg: #fafafa;        /* very light grey background */
+  --color-surface: #ffffff;    /* card backgrounds */
+  --color-border: #e0e0e0;     /* subtle border lines */
+  --color-text: #222222;       /* primary text colour */
+  --color-secondary: #555555;  /* secondary text */
+  --color-accent: #888888;     /* muted accent for icons & links */
+  --nav-height: 60px;          /* fixed navigation bar height */
+
+  /* Typography */
+  --font-family: 'Montserrat', sans-serif;
+  --font-size-base: 16px;
+  --font-size-heading: 2rem;
+  --font-size-subheading: 1.25rem;
+  --font-weight-normal: 300;
+  --font-weight-bold: 600;
+}
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  /* Use a vibrant anime-inspired background image. The image fills the
+     viewport and stays fixed during scroll. */
+  background-image: url('images/anime_bg.png');
+  background-size: cover;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-position: center;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--color-text);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+a:hover {
+  color: var(--color-secondary);
+}
+
+/* Navigation bar */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  z-index: 1000;
+}
+.navbar .logo {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-bold);
+}
+.navbar ul {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+}
+.navbar li {
+  font-weight: var(--font-weight-normal);
+}
+
+/* Highlight the currently active navigation link */
+.navbar a.active {
+  color: var(--color-secondary);
+  font-weight: var(--font-weight-bold);
+  border-bottom: 2px solid var(--color-secondary);
+  padding-bottom: 0.25rem;
+}
+
+/* Container for content below the fixed navigation */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: calc(var(--nav-height) + 2rem) 1rem 2rem;
+}
+
+/* Hero section on the home page */
+.hero {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+.hero h1 {
+  font-size: 3rem;
+  font-weight: var(--font-weight-bold);
+  margin-bottom: 0.5rem;
+}
+.hero p {
+  font-size: 1.2rem;
+  color: var(--color-secondary);
+  margin-top: 0.5rem;
+}
+
+/* Feature grid on the home page */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+.feature-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+}
+.feature-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+.feature-card h3 {
+  font-size: var(--font-size-subheading);
+  font-weight: var(--font-weight-bold);
+  padding: 1rem;
+}
+
+/* Page header for module pages */
+.page-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+.page-header h2 {
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  margin-bottom: 0.5rem;
+}
+.page-header p {
+  color: var(--color-secondary);
+}
+
+/* Form styling for creating posts */
+.post-form {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.post-form textarea {
+  resize: vertical;
+  min-height: 100px;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: var(--font-family);
+}
+.post-form input[type="file"] {
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+  color: var(--color-secondary);
+}
+.post-form button {
+  align-self: flex-end;
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.post-form button:hover {
+  background-color: #333333;
+}
+
+/* Grid of posts */
+.posts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+.post-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+.post-card .timestamp {
+  font-size: 0.8rem;
+  color: var(--color-secondary);
+  text-align: right;
+}
+.post-card img,
+.post-card video,
+.post-card audio {
+  width: 100%;
+  border-radius: 8px;
+  max-height: 280px;
+  object-fit: cover;
+}
+.post-card p {
+  margin-top: 0.5rem;
+}
+
+/* Footer */
+footer {
+  margin-top: 4rem;
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--color-secondary);
+  font-size: 0.9rem;
+}
+
+/* Overlay the letters UMUW softly on the background. Using the ::before
+   pseudo‑element ensures the text sits behind the main content and
+   cannot be interacted with. The enormous font size and subtle
+   transparency create a watermark effect that satisfies the
+   requirement to display “UMUW” while preserving legibility of
+   foreground content. */
+body::before {
+  content: "UMUW";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14rem;
+  font-weight: var(--font-weight-bold);
+  color: rgba(255, 255, 255, 0.08);
+  letter-spacing: 2rem;
+  pointer-events: none;
+  z-index: -1;
+}

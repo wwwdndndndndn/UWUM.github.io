@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>用户管理 - UMUW空间</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="images/ideas_image.png" />
+</head>
+<body class="admin-page">
+  <nav class="navbar">
+    <div class="logo">UMUW空间</div>
+    <ul>
+      <li><a href="index.html">主页</a></li>
+      <li><a href="daily.html">我的日常</a></li>
+      <li><a href="vlog.html">我的出行vlog</a></li>
+      <li><a href="music.html">做点MUSIC</a></li>
+      <li><a href="ideas.html">想法杂记</a></li>
+      <li id="auth-links"></li>
+    </ul>
+  </nav>
+  <main class="container">
+    <header class="page-header">
+      <h2>用户管理</h2>
+      <p>审批新的注册申请，查看已批准的用户。</p>
+    </header>
+    <section>
+      <h3 style="margin-bottom:0.5rem;">待审批用户</h3>
+      <ul id="pending-list" style="list-style:none; padding-left:0;"></ul>
+    </section>
+    <section style="margin-top:2rem;">
+      <h3 style="margin-bottom:0.5rem;">已批准用户</h3>
+      <ul id="approved-list" style="list-style:none; padding-left:0;"></ul>
+    </section>
+  </main>
+  <footer>
+    <p>&copy; 2025 UMUW空间</p>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>
