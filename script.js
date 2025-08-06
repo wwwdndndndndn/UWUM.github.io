@@ -13,17 +13,81 @@
  */
 
 (function () {
+  /**
+   * Firebase setup
+   *
+   * To enable synchronised data across devices, this script uses
+   * Firebase Firestore as a backend. You must provide your own
+   * Firebase project configuration below. Visit
+   * https://console.firebase.google.com/ to create a new project,
+   * enable Firestore, and obtain the config values. Replace the
+   * placeholder strings in the firebaseConfig object with your
+   * actual credentials. Without these values the site will fall
+   * back to localStorage and posts will only appear on the device
+   * where they were created.
+   */
+  const firebaseConfig = {
+  apiKey: "AIzaSyDjCXjHPGoWacnb7HF3ESIQcorIWeCg9g4",
+  authDomain: "umuw-92b53.firebaseapp.com",
+  projectId: "umuw-92b53",
+  storageBucket: "umuw-92b53.firebasestorage.app",
+  messagingSenderId: "608743695486",
+  appId: "1:608743695486:web:ac1c6c9d4fee330f6be42f",
+  measurementId: "G-MG8NMP4G5Y"
+};
+
+  // Attempt to initialise Firebase if the configuration has been
+  // replaced by the site owner. If the apiKey is still the placeholder
+  // text ("YOUR_API_KEY"), skip initialising Firebase to avoid
+  // errors when the site runs without credentials. In that case
+  // localStorage will be used instead of Firestore.
+  let db = null;
+  if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+    } catch (err) {
+      console.error('Failed to initialise Firebase:', err);
+    }
+  }
   /*** User Management ***/
   // Initialise user storage with an admin account on first run.
   function initUsers() {
-    if (!localStorage.getItem('users')) {
-      const admin = { username: 'admin', password: 'admin', approved: true };
-      localStorage.setItem('users', JSON.stringify([admin]));
-      localStorage.setItem('pendingUsers', JSON.stringify([]));
+    // When using Firestore, ensure the admin account exists.
+    if (db) {
+      // Check if admin document exists; if not, create it.
+      db.collection('users').doc('admin').get().then((doc) => {
+        if (!doc.exists) {
+          db.collection('users').doc('admin').set({
+            username: 'admin',
+            password: 'admin',
+            approved: true
+          });
+        }
+      }).catch((err) => {
+        console.error('Error initialising admin in Firestore:', err);
+      });
+    } else {
+      // Local fallback: initialise users in localStorage.
+      if (!localStorage.getItem('users')) {
+        const admin = { username: 'admin', password: 'admin', approved: true };
+        localStorage.setItem('users', JSON.stringify([admin]));
+        localStorage.setItem('pendingUsers', JSON.stringify([]));
+      }
     }
   }
   // Retrieve array of registered users
-  function getUsers() {
+  async function getUsers() {
+    if (db) {
+      try {
+        const snapshot = await db.collection('users').get();
+        return snapshot.docs.map(doc => doc.data());
+      } catch (err) {
+        console.error('Error fetching users from Firestore:', err);
+        return [];
+      }
+    }
+    // Fallback to localStorage
     try {
       return JSON.parse(localStorage.getItem('users')) || [];
     } catch (e) {
@@ -31,11 +95,31 @@
     }
   }
   // Save the users array
-  function saveUsers(users) {
-    localStorage.setItem('users', JSON.stringify(users));
+  async function saveUsers(users) {
+    if (db) {
+      // Replace entire users collection: this may overwrite concurrently
+      // updated records. For small personal sites this is acceptable.
+      const batch = db.batch();
+      users.forEach(user => {
+        const ref = db.collection('users').doc(user.username);
+        batch.set(ref, user);
+      });
+      await batch.commit();
+    } else {
+      localStorage.setItem('users', JSON.stringify(users));
+    }
   }
   // Retrieve pending registration requests
-  function getPendingUsers() {
+  async function getPendingUsers() {
+    if (db) {
+      try {
+        const snapshot = await db.collection('pendingUsers').get();
+        return snapshot.docs.map(doc => doc.data());
+      } catch (err) {
+        console.error('Error fetching pending users from Firestore:', err);
+        return [];
+      }
+    }
     try {
       return JSON.parse(localStorage.getItem('pendingUsers')) || [];
     } catch (e) {
@@ -43,8 +127,18 @@
     }
   }
   // Save pending users
-  function savePendingUsers(pending) {
-    localStorage.setItem('pendingUsers', JSON.stringify(pending));
+  async function savePendingUsers(pending) {
+    if (db) {
+      // Replace entire pendingUsers collection
+      const batch = db.batch();
+      pending.forEach(p => {
+        const ref = db.collection('pendingUsers').doc(p.username);
+        batch.set(ref, p);
+      });
+      await batch.commit();
+    } else {
+      localStorage.setItem('pendingUsers', JSON.stringify(pending));
+    }
   }
   // Get the currently logged in user
   function getCurrentUser() {
@@ -121,21 +215,22 @@
     if (!username) return;
     const password = prompt('密码:');
     if (password === null) return;
-    const users = getUsers();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (!user) {
-      alert('用户名或密码错误');
-      return;
-    }
-    if (!user.approved) {
-      alert('您的账号尚未被管理员批准');
-      return;
-    }
-    setCurrentUser({ username: user.username, approved: true });
-    buildAuthUI();
-    if (document.body.getAttribute('data-page')) {
-      location.reload();
-    }
+    getUsers().then(users => {
+      const user = users.find(u => u.username === username && u.password === password);
+      if (!user) {
+        alert('用户名或密码错误');
+        return;
+      }
+      if (!user.approved) {
+        alert('您的账号尚未被管理员批准');
+        return;
+      }
+      setCurrentUser({ username: user.username, approved: true });
+      buildAuthUI();
+      if (document.body.getAttribute('data-page')) {
+        location.reload();
+      }
+    });
   }
   // Prompt the user to register
   function handleRegister() {
@@ -144,15 +239,15 @@
     const password = prompt('设置密码:');
     if (password === null) return;
     // Check if username already exists or pending
-    const users = getUsers();
-    const pending = getPendingUsers();
-    if (users.find(u => u.username === username) || pending.find(p => p.username === username)) {
-      alert('该用户名已存在或正在审核');
-      return;
-    }
-    pending.push({ username, password });
-    savePendingUsers(pending);
-    alert('注册申请已提交，请等待管理员批准');
+    Promise.all([getUsers(), getPendingUsers()]).then(([users, pending]) => {
+      if (users.find(u => u.username === username) || pending.find(p => p.username === username)) {
+        alert('该用户名已存在或正在审核');
+        return;
+      }
+      pending.push({ username, password });
+      savePendingUsers(pending);
+      alert('注册申请已提交，请等待管理员批准');
+    });
   }
 
   /*** Post and Comment Management ***/
@@ -161,13 +256,24 @@
     const postsContainer = document.querySelector('.posts');
     const storageKey = `posts_${page}`;
     let posts = [];
-    try {
-      posts = JSON.parse(localStorage.getItem(storageKey)) || [];
-    } catch (e) {
-      posts = [];
+    // Fetch posts from Firestore if available; otherwise from localStorage
+    if (db) {
+      db.collection(storageKey).orderBy('date', 'desc').onSnapshot(snapshot => {
+        posts = snapshot.docs.map(doc => doc.data());
+        // ensure comments array
+        posts.forEach(p => { if (!p.comments) p.comments = []; });
+        renderPosts();
+      }, err => {
+        console.error('Error listening to posts:', err);
+      });
+    } else {
+      try {
+        posts = JSON.parse(localStorage.getItem(storageKey)) || [];
+      } catch (e) {
+        posts = [];
+      }
+      posts.forEach(p => { if (!p.comments) p.comments = []; });
     }
-    // ensure comments array
-    posts.forEach(p => { if (!p.comments) p.comments = []; });
     const currentUser = getCurrentUser();
     // Show or hide post form based on approval
     if (!currentUser) {
@@ -223,8 +329,24 @@
         });
       }
     }
-    function savePosts() {
-      localStorage.setItem(storageKey, JSON.stringify(posts));
+    async function savePosts() {
+      if (db) {
+        // Delete existing documents and re-add posts (simple sync). In a real
+        // application you might choose more granular updates. Here we keep
+        // things simple for a small personal site.
+        const collectionRef = db.collection(storageKey);
+        // Fetch existing docs to delete them
+        const existingSnapshot = await collectionRef.get();
+        const batch = db.batch();
+        existingSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+        posts.forEach(post => {
+          const newDocRef = collectionRef.doc();
+          batch.set(newDocRef, post);
+        });
+        await batch.commit();
+      } else {
+        localStorage.setItem(storageKey, JSON.stringify(posts));
+      }
     }
     function renderPosts() {
       postsContainer.innerHTML = '';
