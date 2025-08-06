@@ -13,6 +13,8 @@
    `Montserrat` family for its modern, slightly geometric forms which
    remain easy to read at small sizes. */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
+/* Import a futuristic cyberpunk font for the site logo */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
 
 :root {
   /* Colour palette – all neutrals to maintain a pared‑back feel */
@@ -79,8 +81,14 @@ a:hover {
   z-index: 1000;
 }
 .navbar .logo {
-  font-size: 1.5rem;
-  font-weight: var(--font-weight-bold);
+  /* Use the imported Orbitron font for a cyberpunk vibe */
+  font-family: 'Orbitron', sans-serif;
+  /* Increase the logo size and add a neon glow for a more exaggerated cyberpunk feel */
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 0.3rem;
+  /* Neon glow effect */
+  text-shadow: 0 0 4px #00ffff, 0 0 8px #00ffff, 0 0 15px #00ffff;
 }
 .navbar ul {
   list-style: none;

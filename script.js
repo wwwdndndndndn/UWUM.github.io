@@ -153,89 +153,108 @@
   }
 
   /*** Post and Comment Management ***/
+  // Attempt to initialise Firebase Firestore if the global `firebase` object exists.
+  // When running locally without network or Firebase scripts loaded, `db` will remain null
+  // and the app will fall back to storing posts in localStorage.
+  let db = null;
+  try {
+    if (typeof firebase !== 'undefined' && firebase.firestore) {
+      db = firebase.firestore();
+    }
+  } catch (e) {
+    db = null;
+  }
   function initPosts(page) {
     const form = document.querySelector('.post-form');
     const postsContainer = document.querySelector('.posts');
+    const currentUser = getCurrentUser();
     const storageKey = `posts_${page}`;
     let posts = [];
-    try {
-      posts = JSON.parse(localStorage.getItem(storageKey)) || [];
-    } catch (e) {
-      posts = [];
-    }
-    // Ensure comments array on each post
-    posts.forEach(p => { if (!p.comments) p.comments = []; });
-    const currentUser = getCurrentUser();
-    // Show/hide form based on login state
-    if (!currentUser) {
-      if (form) {
+    // helper: adjust form visibility depending on auth state
+    function setupFormVisibility() {
+      if (!form) return;
+      const prevMsg = form.parentElement.querySelector('.auth-message');
+      if (prevMsg) prevMsg.remove();
+      if (!currentUser) {
         form.style.display = 'none';
         const msg = document.createElement('p');
+        msg.className = 'auth-message';
         msg.textContent = '请先登录并获得批准后才能发布帖子。';
         msg.style.color = 'var(--color-secondary)';
         form.parentNode.insertBefore(msg, form);
-      }
-    } else if (!currentUser.approved) {
-      if (form) {
+      } else if (!currentUser.approved) {
         form.style.display = 'none';
         const msg = document.createElement('p');
+        msg.className = 'auth-message';
         msg.textContent = '您的账号尚未被管理员批准，暂时无法发布帖子。';
         msg.style.color = 'var(--color-secondary)';
         form.parentNode.insertBefore(msg, form);
-      }
-    } else {
-      if (form) {
-        const textarea = form.querySelector('textarea');
-        const fileInput = form.querySelector('input[type="file"]');
-        form.addEventListener('submit', (e) => {
-          e.preventDefault();
-          const text = textarea.value.trim();
-          const file = fileInput.files[0];
-          if (!text && !file) return;
-          const createPost = (media, type) => {
-            const newPost = {
-              username: currentUser.username,
-              text: text,
-              media: media,
-              type: type,
-              date: new Date().toISOString(),
-              comments: []
-            };
-            posts.unshift(newPost);
-            savePosts();
-            renderPosts();
-          };
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = function () {
-              createPost(reader.result, file.type);
-            };
-            reader.readAsDataURL(file);
-          } else {
-            createPost(null, null);
-          }
-          textarea.value = '';
-          fileInput.value = '';
-        });
+      } else {
+        form.style.display = 'flex';
       }
     }
-    function savePosts() {
+    setupFormVisibility();
+    // Save to localStorage when offline
+    function saveLocalPosts() {
       localStorage.setItem(storageKey, JSON.stringify(posts));
     }
+    // Render entire posts array
     function renderPosts() {
       postsContainer.innerHTML = '';
-      posts.forEach((post, index) => renderPost(post, index));
+      posts.forEach(post => renderPost(post));
     }
+    // Render a comment
+    function renderComment(comment) {
+      const div = document.createElement('div');
+      div.style.marginTop = '0.5rem';
+      div.style.borderTop = '1px solid var(--color-border)';
+      div.style.paddingTop = '0.5rem';
+      // author + timestamp
+      const header = document.createElement('div');
+      header.style.fontSize = '0.8rem';
+      header.style.fontWeight = 'bold';
+      header.textContent = `${comment.username} • ${new Date(comment.date).toLocaleString()}`;
+      div.appendChild(header);
+      // media
+      if (comment.media) {
+        if (comment.type && comment.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.src = comment.media;
+          img.alt = 'comment image';
+          img.style.maxWidth = '100%';
+          img.style.borderRadius = '6px';
+          div.appendChild(img);
+        } else if (comment.type && comment.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.src = comment.media;
+          video.controls = true;
+          video.style.maxWidth = '100%';
+          div.appendChild(video);
+        } else if (comment.type && comment.type.startsWith('audio/')) {
+          const audio = document.createElement('audio');
+          audio.src = comment.media;
+          audio.controls = true;
+          div.appendChild(audio);
+        }
+      }
+      if (comment.text) {
+        const p = document.createElement('p');
+        p.textContent = comment.text;
+        div.appendChild(p);
+      }
+      return div;
+    }
+    // Render a single post card
     function renderPost(post) {
       const card = document.createElement('div');
       card.className = 'post-card';
-      // Author
+      // author
       const authorDiv = document.createElement('div');
       authorDiv.style.fontSize = '0.9rem';
       authorDiv.style.fontWeight = 'bold';
       authorDiv.textContent = post.username;
       card.appendChild(authorDiv);
-      // Media
+      // media
       if (post.media) {
         if (post.type && post.type.startsWith('image/')) {
           const img = document.createElement('img');
@@ -254,25 +273,25 @@
           card.appendChild(audio);
         }
       }
-      // Text
       if (post.text) {
         const p = document.createElement('p');
         p.textContent = post.text;
         card.appendChild(p);
       }
-      // Timestamp
       const ts = document.createElement('div');
       ts.className = 'timestamp';
-      ts.textContent = new Date(post.date).toLocaleString();
+      if (post.date) {
+        const dateObj = (post.date instanceof Date) ? post.date : new Date(post.date);
+        ts.textContent = new Date(dateObj).toLocaleString();
+      }
       card.appendChild(ts);
-      // Comments list
       const commentsDiv = document.createElement('div');
       commentsDiv.className = 'comments';
-      post.comments.forEach(comment => {
-        commentsDiv.appendChild(renderComment(comment));
-      });
+      if (post.comments && Array.isArray(post.comments)) {
+        post.comments.forEach(c => commentsDiv.appendChild(renderComment(c)));
+      }
       card.appendChild(commentsDiv);
-      // Comment form
+      // comment form
       const commentForm = document.createElement('form');
       commentForm.className = 'comment-form';
       commentForm.style.marginTop = '0.5rem';
@@ -308,74 +327,178 @@
         const cfile = commentFile.files[0];
         if (!ctext && !cfile) return;
         const username = currentUser ? currentUser.username : '匿名';
-        const addComment = (media, type) => {
-          const comment = {
-            username,
+        const finishComment = (media, type) => {
+          const newComment = {
+            username: username,
             text: ctext,
-            media,
-            type,
+            media: media,
+            type: type,
             date: new Date().toISOString()
           };
-          post.comments.push(comment);
-          savePosts();
-          renderPosts();
+          if (db) {
+            // Attempt to update Firestore; on failure, store locally
+            firebase.firestore().collection('posts').doc(post.id).update({
+              comments: firebase.firestore.FieldValue.arrayUnion(newComment)
+            }).catch((err) => {
+              console.warn('Firestore update error, falling back to localStorage', err);
+              post.comments = post.comments || [];
+              post.comments.push(newComment);
+              saveLocalPosts();
+              renderPosts();
+            });
+          } else {
+            post.comments = post.comments || [];
+            post.comments.push(newComment);
+            saveLocalPosts();
+            renderPosts();
+          }
         };
         if (cfile) {
           const reader = new FileReader();
-          reader.onload = function () {
-            addComment(reader.result, cfile.type);
+          reader.onload = () => {
+            finishComment(reader.result, cfile.type);
           };
           reader.readAsDataURL(cfile);
         } else {
-          addComment(null, null);
+          finishComment(null, null);
         }
+        commentTextarea.value = '';
+        commentFile.value = '';
       });
       card.appendChild(commentForm);
+      // admin delete button
+      if (currentUser && currentUser.username === 'admin') {
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '删除';
+        delBtn.style.marginTop = '0.5rem';
+        delBtn.style.backgroundColor = '#c62828';
+        delBtn.style.color = '#fff';
+        delBtn.style.border = 'none';
+        delBtn.style.padding = '0.4rem 0.8rem';
+        delBtn.style.borderRadius = '6px';
+        delBtn.style.cursor = 'pointer';
+        delBtn.addEventListener('click', () => {
+          if (!confirm('确定要删除这条帖子吗？')) return;
+          if (db) {
+            // Attempt to delete from Firestore. If it fails (e.g. offline), fall back
+            firebase.firestore().collection('posts').doc(post.id).delete()
+              .catch((err) => {
+                console.warn('Firestore delete error, falling back to localStorage', err);
+                const idx = posts.findIndex(p => p === post);
+                if (idx !== -1) {
+                  posts.splice(idx, 1);
+                  saveLocalPosts();
+                  renderPosts();
+                }
+              });
+          } else {
+            const idx = posts.findIndex(p => p === post);
+            if (idx !== -1) {
+              posts.splice(idx, 1);
+              saveLocalPosts();
+              renderPosts();
+            }
+          }
+        });
+        card.appendChild(delBtn);
+      }
       postsContainer.appendChild(card);
     }
-    function renderComment(comment) {
-      const div = document.createElement('div');
-      div.style.marginTop = '0.5rem';
-      div.style.borderTop = '1px solid var(--color-border)';
-      div.style.paddingTop = '0.5rem';
-      // Header: author and timestamp
-      const header = document.createElement('div');
-      header.style.fontSize = '0.8rem';
-      header.style.fontWeight = 'bold';
-      header.textContent = `${comment.username} • ${new Date(comment.date).toLocaleString()}`;
-      div.appendChild(header);
-      // Media
-      if (comment.media) {
-        if (comment.type && comment.type.startsWith('image/')) {
-          const img = document.createElement('img');
-          img.src = comment.media;
-          img.alt = 'comment image';
-          img.style.maxWidth = '100%';
-          img.style.borderRadius = '6px';
-          div.appendChild(img);
-        } else if (comment.type && comment.type.startsWith('video/')) {
-          const video = document.createElement('video');
-          video.src = comment.media;
-          video.controls = true;
-          video.style.maxWidth = '100%';
-          div.appendChild(video);
-        } else if (comment.type && comment.type.startsWith('audio/')) {
-          const audio = document.createElement('audio');
-          audio.src = comment.media;
-          audio.controls = true;
-          div.appendChild(audio);
+    // attach new post form handler
+    function setupFormSubmission() {
+      if (!form || !currentUser || !currentUser.approved) return;
+      const textarea = form.querySelector('textarea');
+      const fileInput = form.querySelector('input[type="file"]');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = textarea.value.trim();
+        const file = fileInput.files[0];
+        if (!text && !file) return;
+        const finishPost = (media, type) => {
+          const newPost = {
+            page: page,
+            username: currentUser.username,
+            text: text,
+            media: media,
+            type: type,
+            date: new Date().toISOString(),
+            comments: []
+          };
+          if (db) {
+            // Attempt to add to Firestore; if fails, store locally
+            firebase.firestore().collection('posts').add(newPost)
+              .catch((err) => {
+                console.warn('Firestore add error, falling back to localStorage', err);
+                posts.unshift(newPost);
+                saveLocalPosts();
+                renderPosts();
+              });
+          } else {
+            posts.unshift(newPost);
+            saveLocalPosts();
+            renderPosts();
+          }
+        };
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            finishPost(reader.result, file.type);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          finishPost(null, null);
         }
-      }
-      // Text
-      if (comment.text) {
-        const p = document.createElement('p');
-        p.textContent = comment.text;
-        div.appendChild(p);
-      }
-      return div;
+        textarea.value = '';
+        fileInput.value = '';
+      });
     }
-    // Initial render
-    renderPosts();
+    // load posts either from Firestore or localStorage
+    if (db) {
+      try {
+        firebase.firestore().collection('posts')
+          .where('page', '==', page)
+          .orderBy('date', 'desc')
+          .onSnapshot((snapshot) => {
+            posts = [];
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              const dateVal = data.date instanceof Date ? data.date : (data.date && data.date.toDate ? data.date.toDate() : data.date);
+              posts.push({ ...data, id: doc.id, date: dateVal });
+            });
+            renderPosts();
+          }, (error) => {
+            // Firestore unavailable or access denied – fall back to localStorage
+            console.warn('Firestore onSnapshot error, falling back to localStorage:', error);
+            db = null;
+            try {
+              posts = JSON.parse(localStorage.getItem(storageKey)) || [];
+            } catch (e) {
+              posts = [];
+            }
+            posts.forEach(p => { if (!p.comments) p.comments = []; });
+            renderPosts();
+          });
+      } catch (err) {
+        console.warn('Firestore init error, falling back to localStorage:', err);
+        db = null;
+        try {
+          posts = JSON.parse(localStorage.getItem(storageKey)) || [];
+        } catch (e) {
+          posts = [];
+        }
+        posts.forEach(p => { if (!p.comments) p.comments = []; });
+        renderPosts();
+      }
+    } else {
+      try {
+        posts = JSON.parse(localStorage.getItem(storageKey)) || [];
+      } catch (e) {
+        posts = [];
+      }
+      posts.forEach(p => { if (!p.comments) p.comments = []; });
+      renderPosts();
+    }
+    setupFormSubmission();
   }
 
   /*** Admin Page Management ***/

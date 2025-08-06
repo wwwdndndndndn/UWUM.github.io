@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>我的日常</title>
+  <title>Daydayup</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" type="image/png" href="images/coffee.jpg" />
 </head>
 <body data-page="daily">
   <!-- Navigation bar -->
   <nav class="navbar">
-    <div class="logo">UMUW空间</div>
+    <div class="logo">UMUW</div>
     <ul>
       <li><a href="index.html">主页</a></li>
-      <li><a href="daily.html" class="active">我的日常</a></li>
-      <li><a href="vlog.html">我的出行vlog</a></li>
+      <li><a href="daily.html" class="active">Daydayup</a></li>
+      <li><a href="vlog.html">VLOG</a></li>
       <li><a href="music.html">做点MUSIC</a></li>
       <li><a href="ideas.html">想法杂记</a></li>
       <li id="auth-links"></li>
@@ -22,7 +22,7 @@
   </nav>
   <main class="container">
     <header class="page-header">
-      <h2>我的日常</h2>
+      <h2>Daydayup</h2>
       <p>记录生活中的点点滴滴，分享喜怒哀乐。</p>
     </header>
     <!-- Post creation form -->
@@ -35,8 +35,25 @@
     <div class="posts"></div>
   </main>
   <footer>
-    <p>&copy; 2025 UMUW空间</p>
+    <p>&copy; 2025 UMUW</p>
   </footer>
+  <!-- Firebase App and Firestore (compatibility builds) -->
+  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDjCXjHPGoWacnb7HF3ESIQcorIWeCg9g4",
+      authDomain: "umuw-92b53.firebaseapp.com",
+      projectId: "umuw-92b53",
+      storageBucket: "umuw-92b53.firebasestorage.app",
+      messagingSenderId: "608743695486",
+      appId: "1:608743695486:web:ac1c6c9d4fee330f6be42f",
+      measurementId: "G-MG8NMP4G5Y"
+    };
+    if (typeof firebase !== 'undefined' && !firebase.apps?.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+  </script>
   <script src="script.js"></script>
 </body>
 </html>
