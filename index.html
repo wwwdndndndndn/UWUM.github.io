@@ -49,26 +49,11 @@
   <footer>
     <p>&copy; 2025 UMUW. 感谢您的访问。</p>
   </footer>
-  <!-- Firebase App and Firestore (compatibility builds) -->
-  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore-compat.js"></script>
-  <script>
-    // Initialise Firebase using the provided configuration. If these scripts fail
-    // to load (e.g. offline), the app will gracefully fall back to
-    // localStorage for storing posts and comments.
-    const firebaseConfig = {
-      apiKey: "AIzaSyDjCXjHPGoWacnb7HF3ESIQcorIWeCg9g4",
-      authDomain: "umuw-92b53.firebaseapp.com",
-      projectId: "umuw-92b53",
-      storageBucket: "umuw-92b53.firebasestorage.app",
-      messagingSenderId: "608743695486",
-      appId: "1:608743695486:web:ac1c6c9d4fee330f6be42f",
-      measurementId: "G-MG8NMP4G5Y"
-    };
-    if (typeof firebase !== 'undefined' && !firebase.apps?.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-  </script>
+  <!-- Firebase libraries and initialisation (loaded once) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <!-- Main application script -->
   <script src="script.js"></script>
 </body>
 </html>
