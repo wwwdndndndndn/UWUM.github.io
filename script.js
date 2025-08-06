@@ -26,7 +26,15 @@
    * back to localStorage and posts will only appear on the device
    * where they were created.
    */
-  const firebaseConfig = {
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
   apiKey: "AIzaSyDjCXjHPGoWacnb7HF3ESIQcorIWeCg9g4",
   authDomain: "umuw-92b53.firebaseapp.com",
   projectId: "umuw-92b53",
@@ -35,6 +43,10 @@
   appId: "1:608743695486:web:ac1c6c9d4fee330f6be42f",
   measurementId: "G-MG8NMP4G5Y"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
   // Attempt to initialise Firebase if the configuration has been
   // replaced by the site owner. If the apiKey is still the placeholder
