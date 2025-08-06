@@ -1,158 +1,51 @@
 /*
- * Enhanced script for the UMUW personal website.
+ * Client‑side logic for the UMUW personal website.
  *
- * This version adds simple user management and comment functionality
- * while preserving the original ability to create rich posts with
- * attachments. Users may register to request an account. After the
- * site owner (admin) approves a user, they can log in and publish
- * posts. Any visitor, logged in or not, can comment on posts and
- * upload media in comments. All data is stored in localStorage so
- * that it persists across page reloads on the same device. To make
- * the site globally accessible you would need to deploy it to a web
- * server; this script does not perform any server‑side operations.
+ * This script implements user management, post creation and comment
+ * functionality entirely in localStorage. It restores the login and
+ * registration system originally built for the site and allows
+ * uploading images, videos and audio attachments in both posts and
+ * comments. Each module page loads posts from its own key in
+ * localStorage (e.g. posts_daily) so that content is organised
+ * separately for 日常、出行vlog、MUSIC 和 想法杂记。
  */
 
-(function () {
-  /**
-   * Firebase setup
-   *
-   * To enable synchronised data across devices, this script uses
-   * Firebase Firestore as a backend. You must provide your own
-   * Firebase project configuration below. Visit
-   * https://console.firebase.google.com/ to create a new project,
-   * enable Firestore, and obtain the config values. Replace the
-   * placeholder strings in the firebaseConfig object with your
-   * actual credentials. Without these values the site will fall
-   * back to localStorage and posts will only appear on the device
-   * where they were created.
-   */
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDjCXjHPGoWacnb7HF3ESIQcorIWeCg9g4",
-  authDomain: "umuw-92b53.firebaseapp.com",
-  projectId: "umuw-92b53",
-  storageBucket: "umuw-92b53.firebasestorage.app",
-  messagingSenderId: "608743695486",
-  appId: "1:608743695486:web:ac1c6c9d4fee330f6be42f",
-  measurementId: "G-MG8NMP4G5Y"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-  // Attempt to initialise Firebase if the configuration has been
-  // replaced by the site owner. If the apiKey is still the placeholder
-  // text ("YOUR_API_KEY"), skip initialising Firebase to avoid
-  // errors when the site runs without credentials. In that case
-  // localStorage will be used instead of Firestore.
-  let db = null;
-  if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-    try {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-    } catch (err) {
-      console.error('Failed to initialise Firebase:', err);
-    }
-  }
+(() => {
   /*** User Management ***/
-  // Initialise user storage with an admin account on first run.
+  // Initialise users and pending lists if not present. Create
+  // default admin user on first run.
   function initUsers() {
-    // When using Firestore, ensure the admin account exists.
-    if (db) {
-      // Check if admin document exists; if not, create it.
-      db.collection('users').doc('admin').get().then((doc) => {
-        if (!doc.exists) {
-          db.collection('users').doc('admin').set({
-            username: 'admin',
-            password: 'admin',
-            approved: true
-          });
-        }
-      }).catch((err) => {
-        console.error('Error initialising admin in Firestore:', err);
-      });
-    } else {
-      // Local fallback: initialise users in localStorage.
-      if (!localStorage.getItem('users')) {
-        const admin = { username: 'admin', password: 'admin', approved: true };
-        localStorage.setItem('users', JSON.stringify([admin]));
-        localStorage.setItem('pendingUsers', JSON.stringify([]));
-      }
+    if (!localStorage.getItem('users')) {
+      const admin = { username: 'admin', password: 'admin', approved: true };
+      localStorage.setItem('users', JSON.stringify([admin]));
+      localStorage.setItem('pendingUsers', JSON.stringify([]));
     }
   }
-  // Retrieve array of registered users
-  async function getUsers() {
-    if (db) {
-      try {
-        const snapshot = await db.collection('users').get();
-        return snapshot.docs.map(doc => doc.data());
-      } catch (err) {
-        console.error('Error fetching users from Firestore:', err);
-        return [];
-      }
-    }
-    // Fallback to localStorage
+  // Return array of registered users
+  function getUsers() {
     try {
       return JSON.parse(localStorage.getItem('users')) || [];
     } catch (e) {
       return [];
     }
   }
-  // Save the users array
-  async function saveUsers(users) {
-    if (db) {
-      // Replace entire users collection: this may overwrite concurrently
-      // updated records. For small personal sites this is acceptable.
-      const batch = db.batch();
-      users.forEach(user => {
-        const ref = db.collection('users').doc(user.username);
-        batch.set(ref, user);
-      });
-      await batch.commit();
-    } else {
-      localStorage.setItem('users', JSON.stringify(users));
-    }
+  // Save users array to localStorage
+  function saveUsers(users) {
+    localStorage.setItem('users', JSON.stringify(users));
   }
-  // Retrieve pending registration requests
-  async function getPendingUsers() {
-    if (db) {
-      try {
-        const snapshot = await db.collection('pendingUsers').get();
-        return snapshot.docs.map(doc => doc.data());
-      } catch (err) {
-        console.error('Error fetching pending users from Firestore:', err);
-        return [];
-      }
-    }
+  // Return array of pending registration requests
+  function getPendingUsers() {
     try {
       return JSON.parse(localStorage.getItem('pendingUsers')) || [];
     } catch (e) {
       return [];
     }
   }
-  // Save pending users
-  async function savePendingUsers(pending) {
-    if (db) {
-      // Replace entire pendingUsers collection
-      const batch = db.batch();
-      pending.forEach(p => {
-        const ref = db.collection('pendingUsers').doc(p.username);
-        batch.set(ref, p);
-      });
-      await batch.commit();
-    } else {
-      localStorage.setItem('pendingUsers', JSON.stringify(pending));
-    }
+  // Save pending users array
+  function savePendingUsers(pending) {
+    localStorage.setItem('pendingUsers', JSON.stringify(pending));
   }
-  // Get the currently logged in user
+  // Get currently logged in user (object or null)
   function getCurrentUser() {
     try {
       return JSON.parse(localStorage.getItem('currentUser')) || null;
@@ -160,18 +53,18 @@ const analytics = getAnalytics(app);
       return null;
     }
   }
-  // Set the current user (null to logout)
+  // Set current user (object or null)
   function setCurrentUser(user) {
     localStorage.setItem('currentUser', JSON.stringify(user));
   }
-  // Update authentication links in the navigation bar
+  // Update navigation bar authentication links
   function buildAuthUI() {
-    const authContainer = document.getElementById('auth-links');
-    if (!authContainer) return;
+    const container = document.getElementById('auth-links');
+    if (!container) return;
+    container.innerHTML = '';
     const user = getCurrentUser();
-    authContainer.innerHTML = '';
     if (!user) {
-      // Not logged in: show Login and Register links
+      // Not logged in: show login and register
       const loginLink = document.createElement('a');
       loginLink.href = '#';
       loginLink.textContent = '登录';
@@ -187,23 +80,23 @@ const analytics = getAnalytics(app);
         e.preventDefault();
         handleRegister();
       });
-      authContainer.appendChild(loginLink);
-      authContainer.appendChild(registerLink);
+      container.appendChild(loginLink);
+      container.appendChild(registerLink);
     } else {
-      // Logged in: display username and logout; admin sees management link
-      const welcomeSpan = document.createElement('span');
-      welcomeSpan.textContent = `欢迎，${user.username}`;
-      authContainer.appendChild(welcomeSpan);
+      // Logged in: show welcome, management (if admin) and logout
+      const welcome = document.createElement('span');
+      welcome.textContent = `欢迎，${user.username}`;
+      container.appendChild(welcome);
       if (user.username === 'admin') {
         const manageLink = document.createElement('a');
         manageLink.href = 'admin.html';
         manageLink.textContent = '用户管理';
         manageLink.style.marginLeft = '0.5rem';
-        // Highlight when on the admin page
+        // highlight current page
         if (window.location.pathname.endsWith('admin.html')) {
           manageLink.classList.add('active');
         }
-        authContainer.appendChild(manageLink);
+        container.appendChild(manageLink);
       }
       const logoutLink = document.createElement('a');
       logoutLink.href = '#';
@@ -213,53 +106,50 @@ const analytics = getAnalytics(app);
         e.preventDefault();
         setCurrentUser(null);
         buildAuthUI();
-        // After logout, refresh page UI if on a post page
         if (document.body.getAttribute('data-page')) {
           location.reload();
         }
       });
-      authContainer.appendChild(logoutLink);
+      container.appendChild(logoutLink);
     }
   }
-  // Prompt the user to log in
+  // Prompt user to login
   function handleLogin() {
     const username = prompt('用户名:');
     if (!username) return;
     const password = prompt('密码:');
     if (password === null) return;
-    getUsers().then(users => {
-      const user = users.find(u => u.username === username && u.password === password);
-      if (!user) {
-        alert('用户名或密码错误');
-        return;
-      }
-      if (!user.approved) {
-        alert('您的账号尚未被管理员批准');
-        return;
-      }
-      setCurrentUser({ username: user.username, approved: true });
-      buildAuthUI();
-      if (document.body.getAttribute('data-page')) {
-        location.reload();
-      }
-    });
+    const users = getUsers();
+    const user = users.find(u => u.username === username && u.password === password);
+    if (!user) {
+      alert('用户名或密码错误');
+      return;
+    }
+    if (!user.approved) {
+      alert('您的账号尚未被管理员批准');
+      return;
+    }
+    setCurrentUser({ username: user.username, approved: true });
+    buildAuthUI();
+    if (document.body.getAttribute('data-page')) {
+      location.reload();
+    }
   }
-  // Prompt the user to register
+  // Prompt user to register
   function handleRegister() {
     const username = prompt('申请的用户名:');
     if (!username) return;
     const password = prompt('设置密码:');
     if (password === null) return;
-    // Check if username already exists or pending
-    Promise.all([getUsers(), getPendingUsers()]).then(([users, pending]) => {
-      if (users.find(u => u.username === username) || pending.find(p => p.username === username)) {
-        alert('该用户名已存在或正在审核');
-        return;
-      }
-      pending.push({ username, password });
-      savePendingUsers(pending);
-      alert('注册申请已提交，请等待管理员批准');
-    });
+    const users = getUsers();
+    const pending = getPendingUsers();
+    if (users.find(u => u.username === username) || pending.find(p => p.username === username)) {
+      alert('该用户名已存在或正在审核');
+      return;
+    }
+    pending.push({ username, password });
+    savePendingUsers(pending);
+    alert('注册申请已提交，请等待管理员批准');
   }
 
   /*** Post and Comment Management ***/
@@ -268,26 +158,15 @@ const analytics = getAnalytics(app);
     const postsContainer = document.querySelector('.posts');
     const storageKey = `posts_${page}`;
     let posts = [];
-    // Fetch posts from Firestore if available; otherwise from localStorage
-    if (db) {
-      db.collection(storageKey).orderBy('date', 'desc').onSnapshot(snapshot => {
-        posts = snapshot.docs.map(doc => doc.data());
-        // ensure comments array
-        posts.forEach(p => { if (!p.comments) p.comments = []; });
-        renderPosts();
-      }, err => {
-        console.error('Error listening to posts:', err);
-      });
-    } else {
-      try {
-        posts = JSON.parse(localStorage.getItem(storageKey)) || [];
-      } catch (e) {
-        posts = [];
-      }
-      posts.forEach(p => { if (!p.comments) p.comments = []; });
+    try {
+      posts = JSON.parse(localStorage.getItem(storageKey)) || [];
+    } catch (e) {
+      posts = [];
     }
+    // Ensure comments array on each post
+    posts.forEach(p => { if (!p.comments) p.comments = []; });
     const currentUser = getCurrentUser();
-    // Show or hide post form based on approval
+    // Show/hide form based on login state
     if (!currentUser) {
       if (form) {
         form.style.display = 'none';
@@ -305,7 +184,6 @@ const analytics = getAnalytics(app);
         form.parentNode.insertBefore(msg, form);
       }
     } else {
-      // Attach submit listener to create posts
       if (form) {
         const textarea = form.querySelector('textarea');
         const fileInput = form.querySelector('input[type="file"]');
@@ -341,30 +219,14 @@ const analytics = getAnalytics(app);
         });
       }
     }
-    async function savePosts() {
-      if (db) {
-        // Delete existing documents and re-add posts (simple sync). In a real
-        // application you might choose more granular updates. Here we keep
-        // things simple for a small personal site.
-        const collectionRef = db.collection(storageKey);
-        // Fetch existing docs to delete them
-        const existingSnapshot = await collectionRef.get();
-        const batch = db.batch();
-        existingSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-        posts.forEach(post => {
-          const newDocRef = collectionRef.doc();
-          batch.set(newDocRef, post);
-        });
-        await batch.commit();
-      } else {
-        localStorage.setItem(storageKey, JSON.stringify(posts));
-      }
+    function savePosts() {
+      localStorage.setItem(storageKey, JSON.stringify(posts));
     }
     function renderPosts() {
       postsContainer.innerHTML = '';
       posts.forEach((post, index) => renderPost(post, index));
     }
-    function renderPost(post, index) {
+    function renderPost(post) {
       const card = document.createElement('div');
       card.className = 'post-card';
       // Author
@@ -406,7 +268,7 @@ const analytics = getAnalytics(app);
       // Comments list
       const commentsDiv = document.createElement('div');
       commentsDiv.className = 'comments';
-      post.comments.forEach((comment) => {
+      post.comments.forEach(comment => {
         commentsDiv.appendChild(renderComment(comment));
       });
       card.appendChild(commentsDiv);
@@ -448,10 +310,10 @@ const analytics = getAnalytics(app);
         const username = currentUser ? currentUser.username : '匿名';
         const addComment = (media, type) => {
           const comment = {
-            username: username,
+            username,
             text: ctext,
-            media: media,
-            type: type,
+            media,
+            type,
             date: new Date().toISOString()
           };
           post.comments.push(comment);
@@ -476,7 +338,7 @@ const analytics = getAnalytics(app);
       div.style.marginTop = '0.5rem';
       div.style.borderTop = '1px solid var(--color-border)';
       div.style.paddingTop = '0.5rem';
-      // Author and timestamp
+      // Header: author and timestamp
       const header = document.createElement('div');
       header.style.fontSize = '0.8rem';
       header.style.fontWeight = 'bold';
@@ -484,26 +346,27 @@ const analytics = getAnalytics(app);
       div.appendChild(header);
       // Media
       if (comment.media) {
-          if (comment.type && comment.type.startsWith('image/')) {
-            const img = document.createElement('img');
-            img.src = comment.media;
-            img.alt = 'comment image';
-            img.style.maxWidth = '100%';
-            img.style.borderRadius = '6px';
-            div.appendChild(img);
-          } else if (comment.type && comment.type.startsWith('video/')) {
-            const video = document.createElement('video');
-            video.src = comment.media;
-            video.controls = true;
-            video.style.maxWidth = '100%';
-            div.appendChild(video);
-          } else if (comment.type && comment.type.startsWith('audio/')) {
-            const audio = document.createElement('audio');
-            audio.src = comment.media;
-            audio.controls = true;
-            div.appendChild(audio);
-          }
+        if (comment.type && comment.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.src = comment.media;
+          img.alt = 'comment image';
+          img.style.maxWidth = '100%';
+          img.style.borderRadius = '6px';
+          div.appendChild(img);
+        } else if (comment.type && comment.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.src = comment.media;
+          video.controls = true;
+          video.style.maxWidth = '100%';
+          div.appendChild(video);
+        } else if (comment.type && comment.type.startsWith('audio/')) {
+          const audio = document.createElement('audio');
+          audio.src = comment.media;
+          audio.controls = true;
+          div.appendChild(audio);
+        }
       }
+      // Text
       if (comment.text) {
         const p = document.createElement('p');
         p.textContent = comment.text;
@@ -511,11 +374,11 @@ const analytics = getAnalytics(app);
       }
       return div;
     }
-    // Render posts initially
+    // Initial render
     renderPosts();
   }
 
-  // When admin visits admin.html, render user management interface
+  /*** Admin Page Management ***/
   function initAdminPage() {
     if (!document.body.classList.contains('admin-page')) return;
     const currentUser = getCurrentUser();
@@ -524,24 +387,24 @@ const analytics = getAnalytics(app);
       window.location.href = 'index.html';
       return;
     }
-    const pendingUsers = getPendingUsers();
-    const users = getUsers();
-    const pendingContainer = document.getElementById('pending-list');
-    const approvedContainer = document.getElementById('approved-list');
+    const pendingList = document.getElementById('pending-list');
+    const approvedList = document.getElementById('approved-list');
+    let pending = getPendingUsers();
+    let users = getUsers();
     function refresh() {
-      pendingContainer.innerHTML = '';
-      approvedContainer.innerHTML = '';
-      // Pending
-      pendingUsers.forEach((req, idx) => {
+      pendingList.innerHTML = '';
+      approvedList.innerHTML = '';
+      // Display pending
+      pending.forEach((req, idx) => {
         const li = document.createElement('li');
         li.textContent = req.username;
         const approveBtn = document.createElement('button');
         approveBtn.textContent = '批准';
         approveBtn.addEventListener('click', () => {
-          // move from pending to users
-          pendingUsers.splice(idx, 1);
+          // Move from pending to users
+          pending.splice(idx, 1);
           users.push({ username: req.username, password: req.password, approved: true });
-          savePendingUsers(pendingUsers);
+          savePendingUsers(pending);
           saveUsers(users);
           refresh();
         });
@@ -549,31 +412,32 @@ const analytics = getAnalytics(app);
         rejectBtn.textContent = '拒绝';
         rejectBtn.style.marginLeft = '0.5rem';
         rejectBtn.addEventListener('click', () => {
-          pendingUsers.splice(idx, 1);
-          savePendingUsers(pendingUsers);
+          pending.splice(idx, 1);
+          savePendingUsers(pending);
           refresh();
         });
         li.appendChild(approveBtn);
         li.appendChild(rejectBtn);
-        pendingContainer.appendChild(li);
+        pendingList.appendChild(li);
       });
-      // Approved (excluding admin)
-      users.forEach(user => {
-        if (user.username === 'admin') return;
+      // Display approved users (excluding admin)
+      users.forEach(u => {
+        if (u.username === 'admin') return;
         const li = document.createElement('li');
-        li.textContent = user.username;
-        approvedContainer.appendChild(li);
+        li.textContent = u.username;
+        approvedList.appendChild(li);
       });
     }
     refresh();
   }
-
-  /*** Entry point ***/
-  document.addEventListener('DOMContentLoaded', function () {
+  // Entry point
+  document.addEventListener('DOMContentLoaded', () => {
     initUsers();
     buildAuthUI();
     const page = document.body.getAttribute('data-page');
-    if (page) initPosts(page);
+    if (page) {
+      initPosts(page);
+    }
     initAdminPage();
   });
 })();

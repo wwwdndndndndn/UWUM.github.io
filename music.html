@@ -33,7 +33,8 @@
       <!-- Post creation form -->
       <form class="post-form">
         <textarea placeholder="分享你的音乐创作感受..."></textarea>
-        <input type="file" accept="audio/*,image/*" />
+        <!-- Allow uploading audio, image and video files to mirror the flexibility of other pages -->
+        <input type="file" accept="audio/*,image/*,video/*" />
         <button type="submit">发布</button>
       </form>
       <!-- Posts container -->
@@ -42,9 +43,6 @@
   <footer>
       <p>&copy; 2025 UMUW空间</p>
   </footer>
-  <!-- Load Firebase (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
